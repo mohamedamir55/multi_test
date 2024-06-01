@@ -1,4 +1,4 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect,get_object_or_404
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.core.mail import send_mail
@@ -43,11 +43,12 @@ def logout_view(request):
         return redirect('accounts:login')
 
 def forget_password (request):
+    if request.method=='POST':
         email=request.POST.get('email') 
         new_password=User.objects.make_random_password()
         user=User.objects.filter(email=email).first()
         user.set_password(new_password)
-        user.save
+        user.save()
         send_mail(
                 'reset password',
                 f' your permnant password is: {new_password} \n ',
@@ -56,28 +57,30 @@ def forget_password (request):
                 fail_silently=False,
             )
         
-        
-       
-        return render(request,'accounts/forget_password.html')
+        return redirect('accounts:reset_password')
+
+    return render(request,'accounts/forget_password.html')
 
 def reset_password(request):
+    if request.method =='POST':
         email=request.POST.get('email')
-        old_password=request.POST.get('oldpassword')
-        new_password1=request.POST.get('password1')
-        new_password2=request.POST.get('password2')
-        user=User.objects.filter(email=email)
-        if new_password1==new_password2 and old_password is authenticate :
-            user.set_password(new_password2)
-            user.save
-            send_mail(
-                'reset password',
-                f' your new password is: {new_password2} \n ',
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False,
-            )
-
-        return render (request,"accounts/reset_password.html")
+        old_password = request.POST.get('oldpassword')
+        new_password=request.POST.get('password1')
+        confirm_password=request.POST.get('password2')
+        if new_password != confirm_password :
+            raise 'invalid password'
+        
+        # user_excest=User.objects.filtter(email=email).first()
+        # if user_excest:
+        #     user=User.objects.get(email=email)
+        #     user.set_password(new_password)
+        #     user.save()
+        user= get_object_or_404(User,email=email)
+        user.set_password(new_password)
+        user.save()
+        return redirect ('home')
+   
+    return render (request,"accounts/reset_password.html")
 
 
 
