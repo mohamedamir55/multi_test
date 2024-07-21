@@ -1,7 +1,7 @@
 from django.shortcuts import render,get_object_or_404,redirect
 from store.models import Product
 from django.contrib.auth.models import User
-from .models import CartItems
+from .models import CartItems,Coupon
 from django.contrib.auth.decorators import login_required
 
 @login_required(login_url='acoounts:login')
@@ -37,18 +37,31 @@ def remove(request,product_id,item_id):
 
 
 @login_required(login_url='accounts:login')
-def Cart (request):
+def Cart (request,discount=0,total=0):
     user=request.user
     items= CartItems.objects.filter(user=user)
-    total=[item.total for item in items][0]
+    try:
+        total=[item.total for item in items][0]
+    except:
+        pass
+    if request.method=='POST':
+        code=request.POST.get('code')
+        if code :
+            coupon=Coupon.objects.filter(code=code,active=True).first()
+            if not coupon:
+                raise "coupon is Expired"
+            ratio=coupon.discount / 100
+            discount=total * ratio
+
     shipping=total*0.10
-    grand_total=shipping+total
-    print(total)
+    grand_total=shipping+(total-discount)
+    
 
     context={
         'items':items,
         'total':total,
         'shipping':shipping,
         'grand_total':grand_total,
+        'discount':discount,
     }
     return render (request,'cart/cart.html',context)
